@@ -70,9 +70,6 @@ public class IngredientRepository {
         }
     }
 
-    /**
-     * Stock agrégé à la date {@code at} pour l'unité demandée (logique métier TD JDBC / mouvements).
-     */
     public StockValue getStockValueAt(Instant at, Integer ingredientId, Unit unit) {
         String sql = """
                 SELECT COALESCE(SUM(CASE

@@ -217,16 +217,11 @@ public class DishRepository {
             ps.executeQuery();
         }
     }
-    /**
-     * Méthode demandée pour l'évaluation :
-     * Retourne les ingrédients d'un plat avec filtres optionnels (ingredientName + ingredientPriceAround)
-     */
     public List<Ingredient> findIngredientsByDishIdFiltered(
             Integer dishId,
             String ingredientName,
             Double ingredientPriceAround) {
 
-        // Nettoyage des filtres ("" ou espaces = pas de filtre)
         String nameFilter = (ingredientName == null || ingredientName.trim().isEmpty())
                 ? null : ingredientName.trim();
 
@@ -239,7 +234,7 @@ public class DishRepository {
                 JOIN ingredient i ON i.id = di.id_ingredient
                 WHERE di.id_dish = ?
                   AND (? IS NULL OR i.name ILIKE '%' || ? || '%')
-                  AND (? IS NULL OR i.price BETWEEN (? - 50) AND (? + 50))
+                  AND (? IS NULL OR (i.price >= ? - 50 AND i.price <= ? + 50))
                 ORDER BY i.name
                 """;
 
@@ -248,7 +243,6 @@ public class DishRepository {
 
             ps.setInt(1, dishId);
 
-            // Paramètre pour le filtre nom (ILike)
             if (nameFilter == null) {
                 ps.setNull(2, Types.VARCHAR);
                 ps.setNull(3, Types.VARCHAR);
@@ -257,7 +251,6 @@ public class DishRepository {
                 ps.setString(3, nameFilter);
             }
 
-            // Paramètre pour le filtre prix (± 50)
             if (priceFilter == null) {
                 ps.setNull(4, Types.DOUBLE);
                 ps.setNull(5, Types.DOUBLE);
@@ -275,7 +268,10 @@ public class DishRepository {
                     ing.setId(rs.getInt("ing_id"));
                     ing.setName(rs.getString("ing_name"));
                     ing.setPrice(rs.getObject("ing_price") == null ? null : rs.getDouble("ing_price"));
-                    ing.setCategory(CategoryEnum.valueOf(rs.getString("ing_cat")));
+
+                    String catStr = rs.getString("ing_cat");
+                    ing.setCategory(catStr == null ? null : CategoryEnum.valueOf(catStr));
+
                     ingredients.add(ing);
                 }
                 return ingredients;
