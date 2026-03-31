@@ -9,12 +9,7 @@ import edu.hei.school.ingredient.entity.Ingredient;
 import edu.hei.school.ingredient.repository.DishRepository;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -83,5 +78,27 @@ public class DishController {
 
     private IngredientResponseDto ingredientToDto(Ingredient i) {
         return new IngredientResponseDto(i.getId(), i.getName(), i.getCategory(), i.getPrice());
+    }
+    @GetMapping("/{id}/ingredients")
+    public ResponseEntity<?> getDishIngredients(
+            @PathVariable Integer id,
+            @RequestParam(required = false) String ingredientName,
+            @RequestParam(required = false) Double ingredientPriceAround) {
+
+        Optional<Dish> dishOpt = dishRepository.findById(id);
+        if (dishOpt.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("Dish.id=" + id + ") is not found");
+        }
+
+        List<Ingredient> ingredients = dishRepository.findIngredientsByDishIdFiltered(
+                id, ingredientName, ingredientPriceAround);
+
+        List<IngredientResponseDto> dtos = ingredients.stream()
+                .map(this::ingredientToDto)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 }

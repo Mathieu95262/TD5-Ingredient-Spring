@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.sql.Types;
 
 @Repository
 public class DishRepository {
@@ -214,6 +215,73 @@ public class DishRepository {
         );
         try (PreparedStatement ps = conn.prepareStatement(setValSql)) {
             ps.executeQuery();
+        }
+    }
+    /**
+     * Méthode demandée pour l'évaluation :
+     * Retourne les ingrédients d'un plat avec filtres optionnels (ingredientName + ingredientPriceAround)
+     */
+    public List<Ingredient> findIngredientsByDishIdFiltered(
+            Integer dishId,
+            String ingredientName,
+            Double ingredientPriceAround) {
+
+        // Nettoyage des filtres ("" ou espaces = pas de filtre)
+        String nameFilter = (ingredientName == null || ingredientName.trim().isEmpty())
+                ? null : ingredientName.trim();
+
+        Double priceFilter = ingredientPriceAround;
+
+        String sql = """
+                SELECT i.id AS ing_id, i.name AS ing_name,
+                       i.price AS ing_price, i.category AS ing_cat
+                FROM dish_ingredient di
+                JOIN ingredient i ON i.id = di.id_ingredient
+                WHERE di.id_dish = ?
+                  AND (? IS NULL OR i.name ILIKE '%' || ? || '%')
+                  AND (? IS NULL OR i.price BETWEEN (? - 50) AND (? + 50))
+                ORDER BY i.name
+                """;
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setInt(1, dishId);
+
+            // Paramètre pour le filtre nom (ILike)
+            if (nameFilter == null) {
+                ps.setNull(2, Types.VARCHAR);
+                ps.setNull(3, Types.VARCHAR);
+            } else {
+                ps.setString(2, nameFilter);
+                ps.setString(3, nameFilter);
+            }
+
+            // Paramètre pour le filtre prix (± 50)
+            if (priceFilter == null) {
+                ps.setNull(4, Types.DOUBLE);
+                ps.setNull(5, Types.DOUBLE);
+                ps.setNull(6, Types.DOUBLE);
+            } else {
+                ps.setDouble(4, priceFilter);
+                ps.setDouble(5, priceFilter);
+                ps.setDouble(6, priceFilter);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Ingredient> ingredients = new ArrayList<>();
+                while (rs.next()) {
+                    Ingredient ing = new Ingredient();
+                    ing.setId(rs.getInt("ing_id"));
+                    ing.setName(rs.getString("ing_name"));
+                    ing.setPrice(rs.getObject("ing_price") == null ? null : rs.getDouble("ing_price"));
+                    ing.setCategory(CategoryEnum.valueOf(rs.getString("ing_cat")));
+                    ingredients.add(ing);
+                }
+                return ingredients;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 }
