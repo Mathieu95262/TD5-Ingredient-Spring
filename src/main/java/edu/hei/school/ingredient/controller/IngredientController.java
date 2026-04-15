@@ -46,7 +46,7 @@ public class IngredientController {
         if (opt.isEmpty()) {
             return ResponseEntity.status(404)
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("Ingredient.id=" + id + ") is not found");
+                    .body("Ingredient.id=" + id + " is not found");
         }
         return ResponseEntity.ok(toDto(opt.get()));
     }
@@ -66,7 +66,7 @@ public class IngredientController {
         if (!ingredientRepository.existsById(id)) {
             return ResponseEntity.status(404)
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("Ingredient.id=" + id + ") is not found");
+                    .body("Ingredient.id=" + id + " is not found");
         }
 
         final Instant instant;

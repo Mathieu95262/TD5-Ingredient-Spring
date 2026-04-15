@@ -50,7 +50,7 @@ public class DishController {
         if (dishOpt.isEmpty()) {
             return ResponseEntity.status(404)
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("Dish.id=" + id + ") is not found");
+                    .body("Dish.id=" + id + " is not found");
         }
 
         List<Integer> requestedIds = body.stream()
@@ -89,7 +89,7 @@ public class DishController {
         if (dishOpt.isEmpty()) {
             return ResponseEntity.status(404)
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("Dish.id=" + id + ") is not found");
+                    .body("Dish.id=" + id + " is not found");
         }
 
         List<Ingredient> ingredients = dishRepository.findIngredientsByDishIdFiltered(

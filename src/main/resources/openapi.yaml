@@ -1,0 +1,261 @@
+openapi: 3.0.3
+info:
+  title: Ingredient & Dish API
+  version: 1.0.0
+  description: OpenAPI specification derived from current Spring controllers.
+
+paths:
+  /ingredients:
+    get:
+      operationId: listIngredients
+      summary: List ingredients
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IngredientResponse"
+
+  /ingredients/{id}:
+    get:
+      operationId: getIngredientById
+      summary: Get ingredient by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngredientResponse"
+        "404":
+          description: Not found
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "Ingredient.id=123 is not found"
+
+  /ingredients/{id}/stock:
+    get:
+      operationId: getIngredientStock
+      summary: Get ingredient stock at a given instant and unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: at
+          in: query
+          required: true
+          description: Instant in ISO-8601 format (e.g. 2026-04-15T12:34:56Z)
+          schema:
+            type: string
+            format: date-time
+        - name: unit
+          in: query
+          required: true
+          description: Expected values are PCS, KG, L
+          schema:
+            $ref: "#/components/schemas/Unit"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockResponse"
+        "400":
+          description: Bad request (missing/invalid query parameter)
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                missingQuery:
+                  summary: Missing at or unit
+                  value: "Either mandatory query parameter `at` or `unit` is not provided."
+                invalidAt:
+                  summary: Invalid at format
+                  value: "Invalid `at` instant (ISO-8601 expected)."
+                invalidUnit:
+                  summary: Invalid unit value
+                  value: "Invalid `unit` (PCS, KG, L)."
+        "404":
+          description: Not found
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "Ingredient.id=123 is not found"
+
+  /dishes:
+    get:
+      operationId: listDishes
+      summary: List dishes
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DishResponse"
+
+  /dishes/{id}/ingredients:
+    get:
+      operationId: getDishIngredients
+      summary: Get ingredients for a dish (optional filters)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: ingredientName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ingredientPriceAround
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IngredientResponse"
+        "404":
+          description: Not found
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "Dish.id=10 is not found"
+
+    put:
+      operationId: replaceDishIngredients
+      summary: Replace dish ingredients (by ingredient id)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        required: true
+        description: JSON array of ingredients (only id is used by the implementation)
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/IngredientPayload"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: Bad request (missing body)
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "Request body is required (JSON array of ingredients)."
+        "404":
+          description: Not found
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "Dish.id=10 is not found"
+
+components:
+  schemas:
+    CategoryEnum:
+      type: string
+      enum: [VEGETABLE, ANIMAL, MARINE, DAIRY, OTHER]
+
+    Unit:
+      type: string
+      enum: [PCS, KG, L]
+
+    IngredientResponse:
+      type: object
+      additionalProperties: false
+      required: [id, name, category, price]
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        category:
+          $ref: "#/components/schemas/CategoryEnum"
+        price:
+          type: number
+          format: double
+
+    IngredientPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        category:
+          $ref: "#/components/schemas/CategoryEnum"
+        price:
+          type: number
+          format: double
+
+    StockResponse:
+      type: object
+      additionalProperties: false
+      required: [unit, value]
+      properties:
+        unit:
+          $ref: "#/components/schemas/Unit"
+        value:
+          type: number
+          format: double
+
+    DishResponse:
+      type: object
+      additionalProperties: false
+      required: [id, name, sellingPrice]
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        sellingPrice:
+          type: number
+          format: double
+        ingredients:
+          type: array
+          items:
+            $ref: "#/components/schemas/IngredientResponse"
